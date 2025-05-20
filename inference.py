@@ -436,7 +436,7 @@ def main():
     image = image_edit.generate_image(
         args.prompt,
         negative_prompt="",
-        ref_images=Image.open(args.image_path).convert("RGB"),
+        ref_images=Image.open(args.input_path).convert("RGB"),
         num_samples=1,
         num_steps=args.num_steps,
         cfg_guidance=args.cfg_guidance,
