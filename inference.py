@@ -418,7 +418,7 @@ def main():
     parser.add_argument('--quantized', action='store_true', help='Use fp8 model weights')
     args = parser.parse_args()
 
-    assert os.path.exists(args.input_dir), f"Input image {args.input_path} does not exist."
+    assert os.path.exists(args.input_path), f"Input image {args.input_path} does not exist."
 
     image_edit = ImageGenerator(
         ae_path=os.path.join(args.model_path, 'vae.safetensors'),
