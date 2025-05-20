@@ -1,6 +1,6 @@
 import argparse
 import datetime
-import json 
+import json
 import itertools
 import math
 import os
@@ -13,7 +13,7 @@ from einops import rearrange, repeat
 from PIL import Image, ImageOps
 from safetensors.torch import load_file
 from torchvision.transforms import functional as F
-from tqdm import tqdm 
+from tqdm import tqdm
 
 import sampling
 from modules.autoencoder import AutoEncoder
@@ -123,7 +123,7 @@ class ImageGenerator:
         if not offload:
             self.dit = self.dit.to(device=self.device)
             self.ae = self.ae.to(device=self.device)
-        self.quantized = quantized 
+        self.quantized = quantized
         self.offload = offload
 
 
@@ -288,11 +288,11 @@ class ImageGenerator:
     def output_process_image(self, resize_img, image_size):
         res_image = resize_img.resize(image_size)
         return res_image
-    
+
     def input_process_image(self, img, img_size=512):
         # 1. 打开图片
         w, h = img.size
-        r = w / h 
+        r = w / h
 
         if w > h:
             w_new = math.ceil(math.sqrt(img_size * img_size * r))
@@ -323,7 +323,7 @@ class ImageGenerator:
     ):
         assert num_samples == 1, "num_samples > 1 is not supported yet."
         ref_images_raw, img_info = self.input_process_image(ref_images, img_size=size_level)
-        
+
         width, height = ref_images_raw.width, ref_images_raw.height
 
 
@@ -351,7 +351,7 @@ class ImageGenerator:
             if self.offload:
                 self.ae = self.ae.cpu()
                 cudagc()
-        
+
         x = torch.randn(
             num_samples,
             16,
@@ -406,9 +406,10 @@ class ImageGenerator:
 def main():
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--prompt', type=str, required=True, help='Prompt for the image generation')
     parser.add_argument('--model_path', type=str, required=True, help='Path to the model checkpoint')
-    parser.add_argument('--input_dir', type=str, required=True, help='Path to the input image directory')
-    parser.add_argument('--output_dir', type=str, required=True, help='Path to the output image directory')
+    parser.add_argument('--input_path', type=str, required=True, help='Path to the input image')
+    parser.add_argument('--output_path', type=str, required=True, help='Path to the output image')
     parser.add_argument('--json_path', type=str, required=True, help='Path to the JSON file containing image names and prompts')
     parser.add_argument('--seed', type=int, default=42, help='Random seed for generation')
     parser.add_argument('--num_steps', type=int, default=28, help='Number of diffusion steps')
@@ -418,13 +419,7 @@ def main():
     parser.add_argument('--quantized', action='store_true', help='Use fp8 model weights')
     args = parser.parse_args()
 
-    assert os.path.exists(args.input_dir), f"Input directory {args.input_dir} does not exist."
-    assert os.path.exists(args.json_path), f"JSON file {args.json_path} does not exist."
-
-    args.output_dir = args.output_dir.rstrip('/') + ('-offload' if args.offload else "") + ('-quantized' if args.quantized else "") + f"-{args.size_level}"
-    os.makedirs(args.output_dir, exist_ok=True)
-
-    image_and_prompts = json.load(open(args.json_path, 'r'))
+    assert os.path.exists(args.input_dir), f"Input image {args.input_path} does not exist."
 
     image_edit = ImageGenerator(
         ae_path=os.path.join(args.model_path, 'vae.safetensors'),
@@ -437,29 +432,24 @@ def main():
 
     time_list = []
 
-    for image_name, prompt in image_and_prompts.items():
-        image_path = os.path.join(args.input_dir, image_name)
-        output_path = os.path.join(args.output_dir, image_name)
-        start_time = time.time()
+    start_time = time.time()
 
-        image = image_edit.generate_image(
-            prompt,
-            negative_prompt="",
-            ref_images=Image.open(image_path).convert("RGB"),
-            num_samples=1,
-            num_steps=args.num_steps,
-            cfg_guidance=args.cfg_guidance,
-            seed=args.seed,
-            show_progress=True,
-            size_level=args.size_level,
-        )[0]
-        
-        print(f"Time taken: {time.time() - start_time:.2f} seconds")
-        time_list.append(time.time() - start_time)
+    image = image_edit.generate_image(
+        args.prompt,
+        negative_prompt="",
+        ref_images=Image.open(args.image_path).convert("RGB"),
+        num_samples=1,
+        num_steps=args.num_steps,
+        cfg_guidance=args.cfg_guidance,
+        seed=args.seed,
+        show_progress=True,
+        size_level=args.size_level,
+    )[0]
 
-        image.save(
-            os.path.join(output_path), lossless=True
-        )
+    print(f"Time taken: {time.time() - start_time:.2f} seconds")
+    time_list.append(time.time() - start_time)
+
+    image.save(os.path.join(args.output_path), lossless=True)
 
 
 if __name__ == "__main__":
