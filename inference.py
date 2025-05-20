@@ -410,7 +410,6 @@ def main():
     parser.add_argument('--model_path', type=str, required=True, help='Path to the model checkpoint')
     parser.add_argument('--input_path', type=str, required=True, help='Path to the input image')
     parser.add_argument('--output_path', type=str, required=True, help='Path to the output image')
-    parser.add_argument('--json_path', type=str, required=True, help='Path to the JSON file containing image names and prompts')
     parser.add_argument('--seed', type=int, default=42, help='Random seed for generation')
     parser.add_argument('--num_steps', type=int, default=28, help='Number of diffusion steps')
     parser.add_argument('--cfg_guidance', type=float, default=6.0, help='CFG guidance strength')
